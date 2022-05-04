@@ -45,6 +45,8 @@ library(stringr)
 #install.packages("textclean")
 library(textclean)
 library(tm)
+library(wordcloud2)
+library(RColorBrewer)
 ```
 
 
@@ -147,9 +149,8 @@ ggplot(lines) +
                                         size = 0.2,
                                         linetype = 1),
     legend.background = element_rect(color = "black", fill = "#9bff16", linetype = "solid"),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
     axis.title.y = element_text(margin=margin(r=5))) + 
-    ylim(0, 450)
+    ylim(0, 450) + coord_flip()
 
 ```
 
@@ -182,17 +183,30 @@ for (i in 1:length(data$line)) {
 
 ## Sentiment Analysis
 
-Tokenizing the lines and storing it in a new table to remove stop words and use it further ahead for analysis.
+Tokenizing the lines and storing it in a new table to remove stop words and use it further ahead for analysis. The total number of words after tokenizing was around 26000, however, it dropped down to around 8000 after removing the stop words. 
 ```{r message=TRUE, warning=FALSE}
 tokens <- data %>% 
   mutate(line = as.character(line)) %>%  
   group_by(name) %>% 
-  unnest_tokens(word, line) 
+  unnest_tokens(ngrams, line) 
 
 tokens %>% head(5)
 
 tokens <- tokens %>%
   anti_join(stop_words)
+
+```
+
+Finding the most common words.
+```{r}
+tokens %>%  count(word, sort = T) %>%  head(10)
+
+tokens %>% 
+  # append the bing sentiment and prepare the data
+  inner_join(bing) %>%
+  count(word, sentiment, sort=T) %>% 
+  acast(word ~ sentiment, value.var = "n", fill=0) %>%
+  comparison.cloud(colors=c("#991D1D", "#327CDE"), max.words = 100)
 
 ```
 
