@@ -156,6 +156,8 @@ ggplot(lines) +
 
 Before moving onto the sentiment analysis, it is important to make some changes to the data, such as removing punctuation and stop words from the text.
 
+
+Here, I am removing contractions in the script such as converting 'didn't' into 'did not'. I am using the function 'replace_contraction' from the the library 'textclean'. I have combined the function 'lapply' with 'replace_contraction' to remove contractions from each line in the 'line' column. 
 ```{r}
 # Removing contractions and replacing with full words
 
