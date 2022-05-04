@@ -49,6 +49,11 @@ library(wordcloud)
 library(wordcloud2)
 library(RColorBrewer)
 library(reshape2)
+#install.packages("magick")
+library(circlize)
+library(magick)
+library(gridExtra)
+library(grid)
 ```
 
 
@@ -194,16 +199,35 @@ tokens <-  anti_join(tokens,stop_words)
 
 ```
 
-Finding the most common words.
-```{r}
-tokens %>%  count(word, sort = T) %>%  head(10)
+Using the tokenized words to visualize Morty's emotions using the [NRC](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-8640.2012.00460.x) lexicon. I am using NRC lexicon because unlike some other lexicons, such as Bing or AFINN, it gives us emotions based on its word dictionary. Whereas, Bing and AFINN only provide us positive and negative sentiments. 
 
-tokens %>% 
-  # append the bing sentiment and prepare the data
-  inner_join(bing) %>%
-  count(word, sentiment, sort=T) %>% 
-  acast(word ~ sentiment, value.var = "n", fill=0) %>%
-  comparison.cloud(colors=c("#991D1D", "#327CDE"), max.words = 100)
+Looking at the plot below, it seems like Morty's character is primarily not driven by fear but negativity. However, the character is often driven by fear as it stand at around third position in terms of highest emotions.
+```{r message=TRUE, warning=TRUE}
 
+to_plot <- tokens %>% 
+  #get 'bing' and filter the data
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(name == "Morty") %>% 
+  #sum number of words per sentiment and character
+  count(sentiment, name) %>% 
+  group_by(name, sentiment) %>% 
+  summarise(sentiment_sum = sum(n)) %>% 
+  ungroup()
+
+myColors = c("Morty" = "#f5f505", "anger" = "#FA8072", "anticipation" = "#04700A", "disgust" = "#99F1EB", "fear" = "#F39C12", "joy" = "#D7DBDD", "negative" = "#06060a", "positive" = "#062D82", "sadness" = "#546e3f", "surprise" = "#2ef24f", "trust" = "#3e2ef2" )
+
+# The Chord Diagram  
+circos.clear()
+circos.par(gap.after = c(rep(2, length(unique(to_plot[[1]])) - 1), 15,
+                         rep(2, length(unique(to_plot[[2]])) - 1), 15), gap.degree=2)
+
+
+chordDiagram(to_plot,grid.col = myColors, transparency = 0.4, annotationTrack = c("name", "grid"),
+             annotationTrackHeight = c(0.01, 0.02))
+title("What is Morty's character driven by?")
+
+#Add a dope image on the plot
+image <- image_read("Morty.jpg")
+grid.raster(image, x=0.92, y=0.22, height=0.25)
 ```
 
