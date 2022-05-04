@@ -44,6 +44,7 @@ library(ggplot2)
 library(stringr)
 #install.packages("textclean")
 library(textclean)
+library(tm)
 ```
 
 
@@ -92,7 +93,7 @@ We can also see from the plot that for some characters, they only appear in one 
 For season 3, Pickle Rick is also in top 10, reason being that there was a whole episode dedicated to this character where Rick turns himself into a pickle to prove his might, one of my favorite episodes. He builds himself a full body armour by killing sewer rats and cockroaches while being a pickle.  
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # Looking at the top 10 characters by season 
 
 # Season 1
@@ -158,10 +159,27 @@ Before moving onto the sentiment analysis, it is important to make some changes 
 
 
 Here, I am removing contractions in the script such as converting 'didn't' into 'did not'. I am using the function 'replace_contraction' from the the library 'textclean'. I have combined the function 'lapply' with 'replace_contraction' to remove contractions from each line in the 'line' column. 
-```{r}
+```{r message=TRUE, warning=FALSE}
 # Removing contractions and replacing with full words
 
 data$line <- lapply(data$line, replace_contraction)
+
+
+
+```
+
+Here I am removing punctuation from the script using the function 'removePunctuation' from the library 'tm'. However, it did not remove "—", hence I used a for loop with gsub to remove it. 
+```{r}
+# Removing any punctuation from the lines
+
+data$line <- lapply(data$line, removePunctuation)
+
+# Removing — from the script
+
+for (i in 1:length(data$line)) {
+  data$line[i] <- gsub("—","",data$line[i])
+}
+
 
 
 ```
