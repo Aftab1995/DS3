@@ -181,9 +181,18 @@ for (i in 1:length(data$line)) {
 ```
 
 ## Sentiment Analysis
+
+Tokenizing the lines and storing it in a new table to remove stop words and use it further ahead for analysis.
 ```{r message=TRUE, warning=FALSE}
-test <- data %>%
-  unnest_tokens(output = words, input = line, drop = F) 
+tokens <- data %>% 
+  mutate(line = as.character(line)) %>%  
+  group_by(name) %>% 
+  unnest_tokens(word, line) 
+
+tokens %>% head(5)
+
+tokens <- tokens %>%
+  anti_join(stop_words)
 
 ```
 
