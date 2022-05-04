@@ -224,10 +224,31 @@ circos.par(gap.after = c(rep(2, length(unique(to_plot[[1]])) - 1), 15,
 
 chordDiagram(to_plot,grid.col = myColors, transparency = 0.4, annotationTrack = c("name", "grid"),
              annotationTrackHeight = c(0.01, 0.02))
-title("What is Morty's character driven by?")
+title("What emotion is Morty's character driven by?")
 
 #Add a dope image on the plot
 image <- image_read("Morty.jpg")
 grid.raster(image, x=0.92, y=0.22, height=0.25)
+```
+
+```{r message=FALSE, warning=FALSE}
+# emotion_morty <- tokens %>% 
+#   inner_join(get_sentiments("nrc")) %>% 
+#   filter(name == "Morty") %>%
+#   count(sentiment, sort=T)
+# 
+# emotion_morty$name <- NULL
+# 
+# 
+# ggplot(emotion_morty, aes(x=reorder(sentiment, n), y=n)) +
+#   geom_bar(stat="identity", aes(fill=sentiment), show.legend=F) +
+#   geom_label(label=emotion_morty$n) +
+#   labs(x="Sentiment", y="Frequency", title="How is the overall mood in Rick&Morty?") +
+#   coord_flip() 
+```
+
+Top words for Positive, Fear, Negative for Morty
+```{r}
+
 ```
 
