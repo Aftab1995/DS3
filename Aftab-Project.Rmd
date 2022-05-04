@@ -45,8 +45,10 @@ library(stringr)
 #install.packages("textclean")
 library(textclean)
 library(tm)
+library(wordcloud)
 library(wordcloud2)
 library(RColorBrewer)
+library(reshape2)
 ```
 
 
@@ -69,10 +71,6 @@ to_filter[to_filter > 0]
 
 To understand more about the data, I have grouped together the total number of lines spoken by each character in every season of the show and narrowed down the list to top 10. As expected, the highest number of lines are by Rick followed by Morty. As the name of the show suggests, these two are the main characters and their total number of lines far excceeds others'.
 ```{r message=FALSE, warning=FALSE}
-colnames(data)
-
-# Renaming the index
-data <- rename(data, index = X.U.FEFF.index)
 
 # Looking at the top 10 number of lines by character in all the seasons together
 
@@ -188,12 +186,11 @@ Tokenizing the lines and storing it in a new table to remove stop words and use 
 tokens <- data %>% 
   mutate(line = as.character(line)) %>%  
   group_by(name) %>% 
-  unnest_tokens(ngrams, line) 
+  unnest_tokens(word, line) 
 
 tokens %>% head(5)
 
-tokens <- tokens %>%
-  anti_join(stop_words)
+tokens <-  anti_join(tokens,stop_words)
 
 ```
 
