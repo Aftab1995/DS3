@@ -159,9 +159,8 @@ Before moving onto the sentiment analysis, it is important to make some changes 
 ```{r}
 # Removing contractions and replacing with full words
 
-x <- "Why didn’t didn't he ' turn into a snake?"
+data$line <- lapply(data$line, replace_contraction)
 
-replace_contraction(x)
 
 ```
 
