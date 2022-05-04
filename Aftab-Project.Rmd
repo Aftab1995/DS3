@@ -1,0 +1,167 @@
+---
+title: "Text Analysis"
+author: "Aftab"
+date: '2022-05-02'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+The motivation behind this dataset comes from my fondness of the [Rick and Morty](https://www.adultswim.com/videos/rick-and-morty) show. It is a sci-fi cartoon show that primarily revolves around an old drunk cynical scientist (Rick) and his good-hearted grandson (Morty) who travel together across the multiverse for adventures. The show is a comic and delivers the viewvers with dark comedy and a plethora of emotions.
+
+The main characters of the show are Rick, Morty, Summer (granddaughter), Jerry (Son-in-law), Beth (Daughter).
+
+Although, I will be conducting sentiment analysis on these main characters primarily, however, I will be more focusing on my following hypothesis:
+
+**Is Morty’s character driven by fear in the famous Rick and Morty show?**
+
+Having seen the show multiple times, I have noticed that Morty's character is primarily driven by fear, however, I would like to test this hypothesis using some of the sentiment analysis tools. 
+
+## Data
+
+The data comes from [Kaggle](https://www.kaggle.com/datasets/andradaolteanu/rickmorty-scripts). It was initially scraped by Gabriel Harnandes and cleaned by Andrada Olteanu. 
+ 
+I have uploaded the data to my [GitHub](https://github.com/Aftab1995/DS3) repo and sourced it from there for my analysis.
+The dataset has following columns:
+
+1. index: just the index of the row
+2. season no: The season number of the dialogue
+3. episode no: The episode number of the dialogue
+4. episode name: The name of the episode
+5. name: the character name
+6. line: the dialogue of the character
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+# Loading the libraries
+library(tidyverse)
+library(tidytext)
+library(kableExtra)
+library(ggplot2)
+library(stringr)
+#install.packages("textclean")
+library(textclean)
+```
+
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+# Loading the data from Github
+
+data<-read.csv(url('https://raw.githubusercontent.com/Aftab1995/DS3/main/Dataset/RickAndMortyScripts.csv'),encoding="UTF-8")
+```
+
+## EDA
+
+Checking to see if there are any missing data in the dataset using the following code. 
+We can confirm that we don't have any missing values in our dataset so we can proceed with EDA.
+```{r message=FALSE, warning=FALSE}
+# Checking for any missing values
+to_filter <- sapply(data, function(x) sum(is.na(x)))
+to_filter[to_filter > 0]
+```
+
+
+To understand more about the data, I have grouped together the total number of lines spoken by each character in every season of the show and narrowed down the list to top 10. As expected, the highest number of lines are by Rick followed by Morty. As the name of the show suggests, these two are the main characters and their total number of lines far excceeds others'.
+```{r message=FALSE, warning=FALSE}
+colnames(data)
+
+# Renaming the index
+data <- rename(data, index = X.U.FEFF.index)
+
+# Looking at the top 10 number of lines by character in all the seasons together
+
+data %>% 
+  group_by(Character = name) %>% 
+  summarise(Total.Lines = n()) %>% 
+  arrange(desc(Total.Lines)) %>%
+  head(10) %>% 
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  
+```
+
+I then wanted to look at the number of lines for each character by season. So I created three tables, one for each season to retrieve the top 10 characters along with their lines. I then fully joined these tables to not loose out information on characters that only appear in one of the seasons. Then, in order to visualize the results, I gathered the table so that I could use it for ggplot function.
+
+Looking at the bar plot overall, it is synonymous to the table above in terms of total lines. However, when we look at it from season perspective, season 2 stand out. There seems to be a tie between the total number of lines by Rick and Beth, which is followed by a seemingly tie between the number lines by Morty and Jerry. 
+
+We can also see from the plot that for some characters, they only appear in one season only, reason being that either they did not appear in the season at all or their number of lines was not enough to be in the top 10 for that particular season. 
+
+For season 3, Pickle Rick is also in top 10, reason being that there was a whole episode dedicated to this character where Rick turns himself into a pickle to prove his might, one of my favorite episodes. He builds himself a full body armour by killing sewer rats and cockroaches while being a pickle.  
+
+
+```{r}
+# Looking at the top 10 characters by season 
+
+# Season 1
+s1_lines <- data %>% 
+  filter(season.no. == 1) %>% 
+  group_by(Character = name) %>% 
+  summarise(Total.Lines.S1 = n()) %>% 
+  arrange(desc(Total.Lines.S1)) %>%
+  head(10) 
+
+# Season 2
+s2_lines <- data %>% 
+  filter(season.no. == 2) %>% 
+  group_by(Character = name) %>% 
+  summarise(Total.Lines.S2 = n()) %>% 
+  arrange(desc(Total.Lines.S2)) %>%
+  head(10) 
+
+# Season 3
+s3_lines <- data %>% 
+  filter(season.no. == 3) %>% 
+  group_by(Character = name) %>% 
+  summarise(Total.Lines.S3 = n()) %>% 
+  arrange(desc(Total.Lines.S3)) %>%
+  head(10) 
+
+lines <- full_join(s1_lines,s2_lines,by="Character")
+lines <- full_join(lines,s3_lines,by = "Character")
+
+
+lines <- gather(lines, "season", "lines", 2:4)
+
+lines <- arrange(lines, "lines")
+
+ggplot(lines) +
+  aes(x = reorder(Character, -lines), fill = season, weight = lines) +
+  geom_bar() +
+  labs(
+    x = "Character Name",
+    y = "Number of Lines",
+    title = "Character Lines by Season"
+  ) +  
+  ggthemes::theme_economist() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 15L,
+    face = "bold",
+    hjust = 0.5
+    ),
+    panel.grid.minor = element_line(color = "white",
+                                        size = 0.2,
+                                        linetype = 1),
+    legend.background = element_rect(color = "black", fill = "#9bff16", linetype = "solid"),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    axis.title.y = element_text(margin=margin(r=5))) + 
+    ylim(0, 450)
+
+```
+
+## Data Engineering
+
+Before moving onto the sentiment analysis, it is important to make some changes to the data, such as removing punctuation and stop words from the text.
+
+```{r}
+# Removing contractions and replacing with full words
+
+x <- "Why didn’t didn't he ' turn into a snake?"
+
+replace_contraction(x)
+
+```
+
