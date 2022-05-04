@@ -155,7 +155,7 @@ ggplot(lines) +
 
 ## Data Engineering
 
-Before moving onto the sentiment analysis, it is important to make some changes to the data, such as removing punctuation and stop words from the text.
+Before moving onto the sentiment analysis, it is important to make some changes to the data, such as removing punctuation and stop words from the text. Although, 'unnest_tokens' function in 'tidytext' removes punctuation and converts the text into lower case, I want to remove punctuation prior to applying the 'unnest_tokens' function to make sure I get rid of all them, in case the 'unnest_tokens' leaves behind some, such as "—".
 
 
 Here, I am removing contractions in the script such as converting 'didn't' into 'did not'. I am using the function 'replace_contraction' from the the library 'textclean'. I have combined the function 'lapply' with 'replace_contraction' to remove contractions from each line in the 'line' column. 
@@ -164,12 +164,10 @@ Here, I am removing contractions in the script such as converting 'didn't' into 
 
 data$line <- lapply(data$line, replace_contraction)
 
-
-
 ```
 
-Here I am removing punctuation from the script using the function 'removePunctuation' from the library 'tm'. However, it did not remove "—", hence I used a for loop with gsub to remove it. 
-```{r}
+Here I am removing punctuation from the script using the function 'removePunctuation' from the library 'tm'. However, it did not remove "—", hence I used a for loop with 'gsub' to remove it. 
+```{r message=TRUE, warning=FALSE}
 # Removing any punctuation from the lines
 
 data$line <- lapply(data$line, removePunctuation)
@@ -180,7 +178,12 @@ for (i in 1:length(data$line)) {
   data$line[i] <- gsub("—","",data$line[i])
 }
 
+```
 
+## Sentiment Analysis
+```{r message=TRUE, warning=FALSE}
+test <- data %>%
+  unnest_tokens(output = words, input = line, drop = F) 
 
 ```
 
