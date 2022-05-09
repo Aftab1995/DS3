@@ -1,13 +1,17 @@
 ---
-title: "Text Analysis"
-author: "Aftab"
-date: '2022-05-02'
+title: "Ricky and Morty - A Deeper Look Into Morty's Character"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+
+![](rick_and_morty.png)
+
+[Source](https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.reddit.com%2Fr%2Frickandmorty%2Fcomments%2F6zm99p%2Frick_and_morty_season_3_animation_crew_photo%2F&psig=AOvVaw0-mX3i8XYaLTTB6aowXfiH&ust=1652184861772000&source=images&cd=vfe&ved=0CAwQjRxqFwoTCKisjbey0vcCFQAAAAAdAAAAABAD)
+
 
 ## Introduction
 
@@ -54,6 +58,9 @@ library(circlize)
 library(magick)
 library(gridExtra)
 library(grid)
+#install.packages("ggraph")
+library(ggraph)
+library(igraph)
 ```
 
 
@@ -201,54 +208,207 @@ tokens <-  anti_join(tokens,stop_words)
 
 Using the tokenized words to visualize Morty's emotions using the [NRC](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-8640.2012.00460.x) lexicon. I am using NRC lexicon because unlike some other lexicons, such as Bing or AFINN, it gives us emotions based on its word dictionary. Whereas, Bing and AFINN only provide us positive and negative sentiments. 
 
-Looking at the plot below, it seems like Morty's character is primarily not driven by fear but negativity. However, the character is often driven by fear as it stand at around third position in terms of highest emotions.
+Looking at the plot below, it seems like Morty's character is primarily not driven by negativity. However, the character is often driven by fear as it stands at around third position, after the overall positivity and negtivity sentiments. That said, it is important to mention that this sentiment analysis may not capture words such as "geez", "oh geez man", which are used very commonly by the character of Morty. One can argue that these can be classified as negative, however, I think such words should be counted towards the emotion of fear. It becomes more clearer when we watch the show and in the context of the script, Morty often uses such terms out of fear. 
 ```{r message=TRUE, warning=TRUE}
 
 to_plot <- tokens %>% 
-  #get 'bing' and filter the data
   inner_join(get_sentiments("nrc")) %>% 
   filter(name == "Morty") %>% 
-  #sum number of words per sentiment and character
   count(sentiment, name) %>% 
   group_by(name, sentiment) %>% 
   summarise(sentiment_sum = sum(n)) %>% 
-  ungroup()
+  ungroup() %>% 
+  arrange(sentiment_sum)
 
 myColors = c("Morty" = "#f5f505", "anger" = "#FA8072", "anticipation" = "#04700A", "disgust" = "#99F1EB", "fear" = "#F39C12", "joy" = "#D7DBDD", "negative" = "#06060a", "positive" = "#062D82", "sadness" = "#546e3f", "surprise" = "#2ef24f", "trust" = "#3e2ef2" )
 
 # The Chord Diagram  
 circos.clear()
 circos.par(gap.after = c(rep(2, length(unique(to_plot[[1]])) - 1), 15,
-                         rep(2, length(unique(to_plot[[2]])) - 1), 15), gap.degree=2)
+                         rep(2, length(unique(to_plot[[2]])) - 1), 15), gap.degree=3.5)
 
 
-chordDiagram(to_plot,grid.col = myColors, transparency = 0.4, annotationTrack = c("name", "grid"),
-             annotationTrackHeight = c(0.01, 0.02))
+chordDiagram(to_plot,grid.col = myColors, transparency = 0.5, annotationTrack = c("name", "grid"),
+             annotationTrackHeight = c(0.1, 0.02))
 title("What emotion is Morty's character driven by?")
 
-#Add a dope image on the plot
-image <- image_read("Morty.jpg")
+#Adding Morty's image
+image <- image_read("Morty.png")
 grid.raster(image, x=0.92, y=0.22, height=0.25)
+#Source for Morty's image: https://sketchok.com/cartoon-characters/rick-and-morty/how-to-draw-morty-smith/
 ```
+
+Top words for Positive, Fear, Negative emotions for Morty.
+
+Looking at the charts for fear and positive, we see the word 'god' is classified as both fear and positive emotions. However, having seen the show and understanding the context, Morty is not a religious character and always uses the word 'god' as a reflection of his fear. Having said that, if we remove the word 'god' and 'holy' out of the positive emotion, fear might surpass both positive and negative emotions. 
+```{r message=FALSE, warning=FALSE}
+
+tokens %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  filter(name == "Morty") %>% 
+  filter(sentiment %in% c("fear", "positive", "negative")) %>% 
+  count(sentiment, word, sort=T) %>% 
+  group_by(sentiment) %>% 
+  arrange(desc(n)) %>% 
+  slice(1:7) %>% 
+  
+  #Plot:
+  ggplot(aes(x=reorder(word, n), y=n)) +
+  geom_col(aes(fill=sentiment), show.legend = F) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  coord_flip() +
+  theme_bw() +
+  labs(x="Word", y="Frequency", title="Sentiment split by most frequent words for Fear, Negative, Positive emotions") 
+
+
+```
+
+Removing the word 'god' and 'holy' out of the bag of words to see how it impacts the overall scoring for the emotions. We see that fear now surpasses positiveness and comes in the second place. There must be other words like these which are miss classified, in the case of this sentiment analysis that might have been swaying the emotions in the opposite direction. Hence, it is important to note that simply running the sentiment analysis and going with the results is might not be the best approach and taking a deeper dive into specifics is important. Here, however, I will limit removing the words to just these two for the purpose of brevity.
 
 ```{r message=FALSE, warning=FALSE}
-# emotion_morty <- tokens %>% 
-#   inner_join(get_sentiments("nrc")) %>% 
-#   filter(name == "Morty") %>%
-#   count(sentiment, sort=T)
-# 
-# emotion_morty$name <- NULL
-# 
-# 
-# ggplot(emotion_morty, aes(x=reorder(sentiment, n), y=n)) +
-#   geom_bar(stat="identity", aes(fill=sentiment), show.legend=F) +
-#   geom_label(label=emotion_morty$n) +
-#   labs(x="Sentiment", y="Frequency", title="How is the overall mood in Rick&Morty?") +
-#   coord_flip() 
+sentiments <- get_sentiments("nrc") %>%  filter( word != "god" & word != "holy")
+
+to_plot <- tokens %>% 
+  inner_join(sentiments) %>% 
+  filter(name == "Morty") %>% 
+  count(sentiment, name) %>% 
+  group_by(name, sentiment) %>% 
+  summarise(sentiment_sum = sum(n)) %>% 
+  ungroup() %>% 
+  arrange(sentiment_sum)
+
+myColors = c("Morty" = "#f5f505", "anger" = "#FA8072", "anticipation" = "#04700A", "disgust" = "#99F1EB", "fear" = "#F39C12", "joy" = "#D7DBDD", "negative" = "#06060a", "positive" = "#062D82", "sadness" = "#546e3f", "surprise" = "#2ef24f", "trust" = "#3e2ef2" )
+
+# The Chord Diagram  
+circos.clear()
+circos.par(gap.after = c(rep(2, length(unique(to_plot[[1]])) - 1), 15,
+                         rep(2, length(unique(to_plot[[2]])) - 1), 15), gap.degree=3.5)
+
+
+chordDiagram(to_plot,grid.col = myColors, transparency = 0.5, annotationTrack = c("name", "grid"),
+             annotationTrackHeight = c(0.1, 0.02))
+title("What emotion is Morty's character driven by?")
+
+#Adding Morty's image
+image <- image_read("Morty.png")
+grid.raster(image, x=0.92, y=0.22, height=0.25)
+#Source for Morty's image: https://sketchok.com/cartoon-characters/rick-and-morty/how-to-draw-morty-smith/
+
 ```
 
-Top words for Positive, Fear, Negative for Morty
+Now doing the same analysis broken down by each season to see how the emotions for Morty progressed.
+
+When divided by seasons, the negative sentiment seems to be the theme for Morty. However, it is very evident from the plots that for season 1 and season 3, the character is driven by fear mostly. Even for season 2, fear seems to be at number 2 highest if we ignor positive and negative emotions. So, by each season for the first 3 seasons, Morty has seen a roller coaster ride, starting with fear and then trusting his grandpa for the inter-galactic adventures. But once Morty understands his grandpa is a selfish scientist, his trust decreases and his fear increases.  
+
+```{r message=FALSE, warning=FALSE}
+
+tokens_2 <- data %>% 
+  mutate(line = as.character(line)) %>%  
+  group_by(name, season.no.) %>% 
+  unnest_tokens(word, line) 
+
+tokens_2 <-  anti_join(tokens_2,stop_words)
+
+
+
+sentiment_season <- tokens_2 %>% 
+  inner_join(sentiments) %>% 
+  filter(name == "Morty") %>% 
+  count(sentiment, season.no.) %>% 
+  group_by(name, sentiment, season.no.) %>% 
+  summarise(sentiment_sum = sum(n)) %>% 
+  ungroup()
+
+ggplot(sentiment_season) +
+  aes(x = sentiment, weight = sentiment_sum) +
+  geom_bar(fill = "#112446") +
+  theme_minimal() +
+  facet_grid(vars(season.no.), vars()) +
+  labs(
+    x = "Emotion",
+    y = "Words per emotion",
+    title = "Emotions by Season"
+  ) +  
+  ggthemes::theme_economist() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 15L,
+    face = "bold",
+    hjust = 0.5
+    ),
+    panel.grid.minor = element_line(color = "white",
+                                        size = 0.2,
+                                        linetype = 1),
+    legend.background = element_rect(color = "black", fill = "#9bff16", linetype = "solid"),
+    axis.title.y = element_text(margin=margin(r=5))) + 
+    ylim(0, 60)
+```
+
+## N-Grams
+Creating tri-grams Morty. Taking a quick look at the top 10, these refer to the confusing nature of the character. He is mostly afraid and of what lies ahead and relies on his grandpas to save him if he gets in trouble. The character is usually unsure about taking the decisions and I think this trigram plot reflects that. 
+```{r message=FALSE, warning=FALSE}
+
+morty_trigrams <- data %>%
+  filter(name == "Morty") %>% 
+  unnest_tokens( output = "trigrams", input = "line",token = "ngrams", n = 3) %>% 
+  count(trigrams, sort = TRUE) %>%
+  head(11) 
+
+morty_trigrams <- morty_trigrams[-1,]
+
+ggplot(morty_trigrams) +
+  aes(x = trigrams, weight = n) +
+  geom_bar(fill = "#112446") +
+  labs(
+    x = "Count",
+    y = "Trigrams",
+    title = "Trigrams"
+  ) +  
+  ggthemes::theme_economist() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 15L,
+    face = "bold",
+    hjust = 0.5
+    ),
+    panel.grid.minor = element_line(color = "white",
+                                        size = 0.2,
+                                        linetype = 1),
+    legend.background = element_rect(color = "black", fill = "#9bff16", linetype = "solid"),
+    axis.title.y = element_text(margin=margin(r=5))) +
+    coord_flip()
+
+
+```
+
+I tried building a n-gram relation graph for bi-gram and tri-gram, however, it did not yield any valuable results. Hence I am commenting out the section. But you wish to plot a relation graph, below code snippet can be used as a guide, where it uses the igraph library. 
 ```{r}
 
+# trigrams_network <- data %>%
+#   filter(name == "Morty") %>%
+#   unnest_tokens( output = "trigrams", input = "line",token = "ngrams", n = 3) %>%
+#   ungroup() %>%
+#   separate(trigrams, c("word1", "word2","word3"), sep = " ")  %>%
+#   count(word1, word2, word3, sort = TRUE) %>%
+#   filter(n > 3) %>%
+#   graph_from_data_frame()
+# 
+# 
+# set.seed(2022)
+# 
+# a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+# 
+# ggraph(trigrams_network, layout = "fr") +
+#   geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+#                  arrow = a, end_cap = circle(.07, 'inches')) +
+#   geom_node_point(color = "lightblue", size = 5) +
+#   geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+#   theme_void()
 ```
 
+
+## Conclusion
+Doing this sentiment analysis opened my eyes to different limitations that one faces during text analysis. Some of the limitations that I had mentioned above were the presence of words across different sentiments in the same lexicon, such as the word 'god' in the nrc lexicon. Other limitations such as these lexicons not having words such as 'geez' that can be specific to the text. That said, i believe more words can be added to these lexicons along with their respective emotions, which might improve the sentiment analysis at hand. 
+
+Nevertheless, experiencing text analysis while doing sentiment analysis on one of my favorite shows didn't feel like an assignment or extra work but it felt good to extract something out of the script of the show. The words in the script may not relay emotions without the sound itself, however, being able to extract emotions just from the words that are very close to what the show reflects is very cool. 
